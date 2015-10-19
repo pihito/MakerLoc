@@ -1,0 +1,31 @@
+2015-10-19 18:20:14,777 - db - INFO - db connnection ok
+2015-10-19 18:20:14,793 - db - DEBUG - tentative insertion : userName : delporte cardId : 1234 email : sdelporte@gmail.com
+2015-10-19 18:20:14,802 - db - INFO - data insert : 5625183e5cedc91cc0f9afdb
+2015-10-19 18:20:14,803 - db - DEBUG - tentative maj/insertion : userName : pol cardId : 1234 email : pol@gmail.com
+2015-10-19 18:20:14,808 - db - DEBUG - maj/insertion ok - numéro d'insertion : 5625183e9edc2f08dd2ebdda
+2015-10-19 18:20:14,808 - db - DEBUG - tentative maj/insertion : userName : pol cardId : 1234 email : pol@gmail.com
+2015-10-19 18:20:15,357 - db - DEBUG - maj/insertion ok
+2015-10-19 18:20:15,363 - db - DEBUG - resquest : collection : utilisateur requete : {
+    "userName": "delporte"
+} data : [
+    "5625183e5cedc91cc0f9afdb",
+    "sdelporte@gmail.com",
+    "delporte",
+    "1234"
+]
+2015-10-19 18:20:15,365 - db - DEBUG - tentative maj - clès :  {
+    "userName": "delporte"
+} valeurs : {
+    "cardId": "789",
+    "email": "sdelporte@gmail.com",
+    "userName": "delporte"
+}
+2015-10-19 18:20:15,370 - db - DEBUG - maj ok
+2015-10-19 18:20:15,373 - db - DEBUG - resquest : collection : utilisateur requete : {
+    "userName": "delporte"
+} data : [
+    "5625183e5cedc91cc0f9afdb",
+    "sdelporte@gmail.com",
+    "delporte",
+    "789"
+]
