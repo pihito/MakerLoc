@@ -4,9 +4,10 @@ __license__ = 'MIT'
 
 import logging
 import json
-from pymongo import MongoClient
+from pymongo import MongoClient,ASCENDING
 from pymongo.errors import ConnectionFailure,InvalidName
 from re import compile
+import datetime
 
 
 # Python.
@@ -15,6 +16,10 @@ class DataObjectImplementException(Exception) :
         return "l'objet fils doit implémenter getKeys,getData,toString,toJson"
 
 class DataObject() : 
+
+    creationDate = datetime.datetime.now()
+    modificationDate =  datetime.datetime.now()    
+    
     def getKeys() : 
         raise dataObjectImplementException()
     def getData() : 
@@ -27,9 +32,16 @@ class DataObject() :
 
 class Utilisateur(DataObject) : 
     
-    def __init__(self,userName="",cardId="",email=None):
+    logger = logging.getLogger('dataClass')
+
+    def __init__(self,userName="",cardId="",email=None,firstName="",lastName="",activate=True):
         self.userName = userName
         self.cardId = cardId
+        self.firstName = firstName
+        self.lastName = lastName 
+        self.activate = activate
+
+
         if email != None : 
             self.setEmail(email)
         else : 
@@ -39,20 +51,22 @@ class Utilisateur(DataObject) :
         if self.emailValide(value) : 
             self.email = value
         else : 
-             raise AssertionError
+             self.logger.warning("Utilisateur - bad email : " + value)
+             raise Exception
                 
     def emailValide(self, value) : 
         email_re = compile(r'^[\S]+@[\S]+\.[\S]+$')
         return email_re.match(value)
     
     def toString(self) :
-        return "userName : " + self.userName + " cardId : " + self.cardId + " email : " + self.email 
+        return "userName : " + self.userName + " cardId : " + self.cardId + " email : " + self.email + " lastName : " + self.lastName +" firstName : " + self.firstName + " activate : " + str(self.activate) 
     
     def getData(self) : 
-        return {"userName" : self.userName,"cardId" : self.cardId,"email":self.email}
+        return {"userName" : self.userName,"cardId" : self.cardId,"email":self.email,"lastName": self.lastName,"firstName":self.firstName,"activate":self.activate,
+                "creationDate":self.creationDate,"modificationDate":self.modificationDate}
         
     def toJson(self) :
-        return json.dumps(self.toDict(),sort_keys=True, indent=4)
+        return json.dumps(self.getData(),sort_keys=True, indent=4)
     def getKeys(self) : 
         return {"userName" : self.userName}
 
@@ -64,12 +78,16 @@ class BaseHelper :
         self.dbStore = dbStore
 
     def store(self,dataObject) : 
-        self.dbStore.store(self.collecName,dataObject)
+            dataObject.creationDate = datetime.datetime.now()
+            dataObject.modificationDate = datetime.datetime.now() 
+            self.dbStore.store(self.collecName,dataObject)
         
     def secureStore(self,dataObject) : 
-        self.dbStore.secureStore(self.collecName,dataObject)
+            dataObject.modificationDate = datetime.datetime.now() 
+            self.dbStore.secureStore(self.collecName,dataObject)
 
     def updateField(self,dataObject,fieldsToUpd) : 
+            fieldsToUpd[modificationDate]= datetime.datetime.now()
             self.dbStore.updateField(self.collecName,dataObject.getKeys(),fieldsToUpd)
 
     def lenght(self) :
@@ -78,12 +96,19 @@ class BaseHelper :
     def cleanAll(self) :
         self.dbStore.cleanAll(self.collecName)
 
+
 class UtilisateurHelper(BaseHelper) : 
     
     def __init__(self,dbStore) : 
         super().__init__(dbStore)
         self.collecName = "utilisateur"        
     
+    def getAll(self) : 
+        retour = []
+        for doc in self.dbStore.getAll(self.collecName).sort('userName', ASCENDING) : 
+            retour.append(self.createFromDic(doc))
+        return retour
+
     def getOneByName(self,userName) :
         retour = None
         data = self.dbStore.requestGetOne(self.collecName,{"userName": userName})
@@ -92,11 +117,16 @@ class UtilisateurHelper(BaseHelper) :
         return retour
 
     def createFromDic(self,values) : 
-        ret = Utilisateur(values["userName"],values["cardId"],values["email"])
+        ret = Utilisateur(values["userName"],values["cardId"],values["email"],values["firstName"],values["lastName"],values["activate"])
+        ret.creationDate = values["creationDate"]
+        ret.modificationDate = values["modificationDate"]
         return ret
 
     def updateAllField(self,utilisateur) :
         self.updateField(utilisateur,utilisateur.getData())
+
+    def delete(self,utilisateur) :
+        return self.dbStore.delete(self.collecName,utilisateur.getKeys())
 
 class DbStoreException(Exception) : 
     errorCode = { 0x01 : "impossible de ce connecté" ,
@@ -182,3 +212,14 @@ class DbStore :
         collec = self.db[collecName]
         collec.drop()        
 
+    def getAll(self,collecName) : 
+        collec = self.db[collecName]
+        self.logger.debug("Get all data on " + collecName) 
+        return collec.find()
+
+    def delete(self,collecName,keys) : 
+       collec = self.db[collecName]
+       self.logger.debug("requete de suppression - collection : " + collecName + "clès : " + json.dumps([str(v) for v in keys.values()],sort_keys=True, indent=4))
+       result = collec.delete_one(keys)
+       self.logger.debug("nombre d'objet supprimé : " + str(result.deleted_count)) 
+       return result.deleted_count

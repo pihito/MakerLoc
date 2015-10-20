@@ -1,5 +1,6 @@
 #virtualenv repertoire
 venv/**
+webClient/**
 
 # Windows image file caches
 Thumbs.db
